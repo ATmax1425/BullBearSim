@@ -46,13 +46,10 @@ app.layout = dbc.Container([
                 options=[{"label": sym, "value": sym} for sym in SYMBOLS],
                 value=[SYMBOLS[0]],  # default selection
                 inline=True
-            ), 
+            ),
         ], width=12),
     ], className="mb-3"),
-    dbc.Row([
-        dbc.Col(dcc.Graph(id=f"graph-{sym}"), width=12)
-        for sym in SYMBOLS
-    ]),
+    html.Div(id="charts-container"),
     dcc.Interval(id="interval-component", interval=1000, n_intervals=0)
 ], fluid=True)
 
@@ -91,20 +88,41 @@ Thread(target=start_ws_loop, daemon=True).start()
 # -----------------------------
 # Callbacks for each graph
 # -----------------------------
-for sym in SYMBOLS:
-    @app.callback(
-        Output(f"graph-{sym}", "figure"),
-        [Input("symbol-checklist", "value"),
-         Input("interval-component", "n_intervals")],
-        prevent_initial_call=False
-    )
-    def update_graph(selected_symbols, n, sym=sym):
-        if sym not in selected_symbols:
-            # Return empty figure if not selected
-            return go.Figure()
+# for sym in SYMBOLS:
+#     @app.callback(
+#         Output(f"graph-{sym}", "figure"),
+#         [Input("symbol-checklist", "value"),
+#          Input("interval-component", "n_intervals")],
+#         prevent_initial_call=False
+#     )
+#     def update_graph(selected_symbols, n, sym=sym):
+#         if sym not in selected_symbols:
+#             # Return empty figure if not selected
+#             return go.Figure()
 
+#         df = pd.DataFrame(buffers[sym]).tail(200)
+
+#         fig = go.Figure()
+#         fig.add_trace(go.Scatter(
+#             x=df["ts"],
+#             y=df["price"],
+#             mode="lines+markers",
+#             name=sym
+#         ))
+#         fig.update_layout(title=f"{sym} Price", xaxis_title="Time", yaxis_title="Price")
+#         return fig
+
+@app.callback(
+    Output("charts-container", "children"),
+    [Input("symbol-checklist", "value"),
+        Input("interval-component", "n_intervals")]
+)
+def update_charts(selected_symbols, n):
+    charts = []
+    for sym in selected_symbols:
+        if sym not in buffers or len(buffers[sym]) == 0:
+            continue
         df = pd.DataFrame(buffers[sym]).tail(200)
-
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=df["ts"],
@@ -113,7 +131,14 @@ for sym in SYMBOLS:
             name=sym
         ))
         fig.update_layout(title=f"{sym} Price", xaxis_title="Time", yaxis_title="Price")
-        return fig
+        charts.append(html.Div([
+            html.H4(f"Chart for {sym}"),
+            dcc.Graph(
+                id=f"graph-{sym}",
+                figure=fig
+            )
+        ], style={"margin-bottom": "30px", "display": "grid"}))
+    return charts
 
 # -----------------------------
 if __name__ == "__main__":
