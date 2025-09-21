@@ -13,6 +13,8 @@ import pandas as pd
 import traceback
 from collections import defaultdict, deque
 
+from helper import get_psql_conn
+
 WS_URL = "ws://localhost:8000/ws"
 MAX_POINTS = 30  # cap chart length
 
@@ -27,6 +29,10 @@ if "buffers" not in st.session_state:
 
 if "charts" not in st.session_state:
     st.session_state.charts = {}
+
+
+conn = get_psql_conn()
+cur = conn.cursor
 
 # -----------------------------
 # Async WebSocket loop
