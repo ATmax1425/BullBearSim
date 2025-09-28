@@ -9,7 +9,7 @@ Built to showcase real-time pipelines with **Kafka**, **FastAPI**, **TimescaleDB
 - Real-time stock price streaming via **Kafka**
 - WebSocket API with **FastAPI**
 - Persistent storage in **TimescaleDB** (with 30-day retention policy)
-- **Streamlit dashboard** for:
+- **Dash dashboard** for:
   - Live tick charting
   - Historical queries from DB
 
@@ -20,7 +20,7 @@ Built to showcase real-time pipelines with **Kafka**, **FastAPI**, **TimescaleDB
 - **Apache Kafka** (event streaming backbone)
 - **FastAPI** (WebSocket server)
 - **TimescaleDB/Postgres** (time-series storage)
-- **Streamlit** (data visualization)
+- **Dash** (data visualization)
 - **Docker Compose** (containerized setup)
 
 ---
@@ -30,10 +30,11 @@ Built to showcase real-time pipelines with **Kafka**, **FastAPI**, **TimescaleDB
 
 ├── app.py # FastAPI WebSocket server
 ├── consumer_to_db.py # Kafka consumer → DB writer
+├── dash_client.py → Dash Client (Main UI)
 ├── docker-compose.yml # Infra setup: Kafka + TimescaleDB
 ├── helper.py # Utility functions
 ├── init.sql # DB retention policy (30 days)
-├── streamlit_client.py # Streamlit frontend (live + historical)
+├── streamlit_client.py # Streamlit frontend (Legacy UI)
 └── .gitignore
 
 
@@ -52,10 +53,7 @@ python producer.py
 
 python consumer_to_db.py
 
-uvicorn app:app --reload
-
-streamlit run streamlit_client.py
-
+python dash_client.py
 
 Planned features:
 
