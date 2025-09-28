@@ -33,7 +33,7 @@ async def consume():
                 (data["ts"], data["symbol"], data["price"], data["volume"])
             )
             conn.commit()
-            print("commit done")
+            # print("commit done")
     finally:
         await consumer.stop()
         cur.close()

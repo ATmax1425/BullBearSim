@@ -88,30 +88,6 @@ Thread(target=start_ws_loop, daemon=True).start()
 # -----------------------------
 # Callbacks for each graph
 # -----------------------------
-# for sym in SYMBOLS:
-#     @app.callback(
-#         Output(f"graph-{sym}", "figure"),
-#         [Input("symbol-checklist", "value"),
-#          Input("interval-component", "n_intervals")],
-#         prevent_initial_call=False
-#     )
-#     def update_graph(selected_symbols, n, sym=sym):
-#         if sym not in selected_symbols:
-#             # Return empty figure if not selected
-#             return go.Figure()
-
-#         df = pd.DataFrame(buffers[sym]).tail(200)
-
-#         fig = go.Figure()
-#         fig.add_trace(go.Scatter(
-#             x=df["ts"],
-#             y=df["price"],
-#             mode="lines+markers",
-#             name=sym
-#         ))
-#         fig.update_layout(title=f"{sym} Price", xaxis_title="Time", yaxis_title="Price")
-#         return fig
-
 @app.callback(
     Output("charts-container", "children"),
     [Input("symbol-checklist", "value"),
