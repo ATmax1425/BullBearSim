@@ -10,4 +10,4 @@ CREATE TABLE IF NOT EXISTS ticks (
 SELECT create_hypertable('ticks', 'ts', if_not_exists => TRUE);
 
 -- Add a retention policy to drop data older than 30 days
-SELECT add_retention_policy('ticks', INTERVAL '20 mins', if_not_exists => TRUE);
+SELECT add_retention_policy('ticks', INTERVAL '30 days', if_not_exists => TRUE);

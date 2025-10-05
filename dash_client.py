@@ -6,6 +6,7 @@ import pandas as pd
 import asyncio
 import websockets
 import json
+import re
 from threading import Thread
 from helper import get_psql_engine
 
@@ -27,12 +28,42 @@ def get_historical_data(symbol, limit=200):
     df = pd.read_sql_query(query, engine, params=(symbol, limit))
     return df.sort_values("ts")
 
+def resample_data(df, timeframe="1m"):
+    if df.empty:
+        return df
+
+    df = df.copy()
+    df['ts'] = pd.to_datetime(df['ts'])
+    df.set_index('ts', inplace=True)
+
+    freq = TIMEFRAME_MAP.get(timeframe, "1min")
+    df_resampled = df['price'].resample(freq).last()
+    df_resampled = df_resampled.reset_index()
+    return df_resampled
+
 # -----------------------------
 # Dash App Setup
 # -----------------------------
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+MAX_BARS = 200 
 SYMBOLS = ["NIFTY", "BANKNIFTY", "RELIANCE", "TCS", "INFY"]
+TIMEFRAME = ['1m', '2m', '5m', '10m', '15m', '30m', '1h', '2h', '5h', '6h', '12h', "1d"]
+
+TIMEFRAME_MAP = {
+    "1m": "1min",
+    "2m": "2min",
+    "5m": "5min",
+    "10m": "10min",
+    "15m": "15min",
+    "30m": "30min",
+    "1h": "1h",
+    "2h": "2h",
+    "5h": "5h",
+    "6h": "6h",
+    "12h": "12h",
+    "1d": "1D",
+}
 
 app.layout = dbc.Container([
     dbc.Row([
@@ -44,9 +75,15 @@ app.layout = dbc.Container([
             dcc.Checklist(
                 id="symbol-checklist",
                 options=[{"label": sym, "value": sym} for sym in SYMBOLS],
-                value=[SYMBOLS[0]],  # default selection
+                value=[SYMBOLS[0]],
                 inline=True
             ),
+            html.Label("Select the timeframe"),
+            dcc.Dropdown(
+                id="timeframe-dropdown",
+                options=[{"label": i, "value": i} for i in TIMEFRAME],
+                value="1m",
+            )
         ], width=12),
     ], className="mb-3"),
     html.Div(id="charts-container"),
@@ -85,24 +122,45 @@ def start_ws_loop():
 
 Thread(target=start_ws_loop, daemon=True).start()
 
+def get_required_ticks(timeframe, max_bars=MAX_BARS):
+    m = re.match(r"(\d+)([mhd])", timeframe)
+    if not m:
+        return max_bars * 10
+
+    n, unit = int(m.group(1)), m.group(2)
+
+    unit_map = {"m": 1, "h": 60, "d": 1440}
+    minutes = n * unit_map[unit]
+
+    ticks_per_candle = minutes * 60  
+
+    return max_bars * ticks_per_candle
+
 # -----------------------------
 # Callbacks for each graph
 # -----------------------------
 @app.callback(
     Output("charts-container", "children"),
     [Input("symbol-checklist", "value"),
-        Input("interval-component", "n_intervals")]
+     Input("timeframe-dropdown", "value"),
+     Input("interval-component", "n_intervals")
+    ]
 )
-def update_charts(selected_symbols, n):
+def update_charts(selected_symbols, timeframe,  n):
     charts = []
+    tf = timeframe[0] if isinstance(timeframe, list) else timeframe
+    required_ticks = get_required_ticks(tf)
     for sym in selected_symbols:
         if sym not in buffers or len(buffers[sym]) == 0:
             continue
-        df = pd.DataFrame(buffers[sym]).tail(200)
+        df = pd.DataFrame(buffers[sym]).tail(required_ticks)
+
+        df_resampled = resample_data(df, tf)
+
         fig = go.Figure()
         fig.add_trace(go.Scatter(
-            x=df["ts"],
-            y=df["price"],
+            x=df_resampled["ts"],
+            y=df_resampled["price"],
             mode="lines+markers",
             name=sym
         ))
