@@ -73,7 +73,7 @@ async def tick_producer_task():
     await producer.start()
     print("producer.start()")
     try:
-        prices = {s: 100.0 + random.uniform(-10, 10) for s in SYMBOLS}
+        prices = {s: 1000.0 + random.uniform(-10, 10) for s in SYMBOLS}
         vols = {s: 0.01 for s in SYMBOLS}
 
         while True:
