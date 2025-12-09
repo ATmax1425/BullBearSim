@@ -1,0 +1,5 @@
+aiokafka
+psycopg2-binary
+SQLAlchemy
+python-dotenv
+pydantic

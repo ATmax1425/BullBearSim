@@ -13,7 +13,7 @@ import pandas as pd
 import traceback
 from collections import defaultdict, deque
 
-from helper import get_psql_conn
+from consumer.helper import get_psql_conn
 
 WS_URL = "ws://localhost:8000/ws"
 MAX_POINTS = 30  # cap chart length

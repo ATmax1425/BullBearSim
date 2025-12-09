@@ -2,7 +2,7 @@ import random
 from datetime import datetime, timedelta, time
 from dateutil.relativedelta import relativedelta
 
-from helper import get_psql_conn
+from consumer.helper import get_psql_conn
 
 SYMBOLS = ["NIFTY", "BANKNIFTY", "RELIANCE", "TCS", "INFY"]
 

@@ -6,15 +6,15 @@ Using Lifespan instead of deprecated on_event
 import asyncio
 import json
 import random
+import os
 from datetime import datetime, timezone, time, timedelta
 from contextlib import asynccontextmanager
 
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from aiokafka import AIOKafkaProducer
 import uvicorn
 
-KAFKA_BOOTSTRAP = "localhost:9092"
+KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
 TOPIC_TICKS = "ticks"
 SYMBOLS = ["NIFTY", "BANKNIFTY", "RELIANCE", "TCS", "INFY"]
 

@@ -8,7 +8,7 @@ import websockets
 import json
 import re
 from threading import Thread
-from helper import get_psql_engine
+from consumer.helper import get_psql_engine
 
 # -----------------------------
 # Database connection

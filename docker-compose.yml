@@ -1,50 +1,93 @@
-version: "3.8"
-
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
+    networks:
+      - internal
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     depends_on:
       - zookeeper
-    ports:
-      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - internal
 
   postgres:
     image: timescale/timescaledb:latest-pg14
-    container_name: timescaledb
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: marketdata
     volumes:
       - ./pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - internal
 
   grafana:
     image: grafana/grafana:latest
     depends_on:
       - postgres
-    ports:
-      - "3000:3000"
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_DATABASE_SSL_MODE: disable
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
     volumes:
       - ./grafana-data:/var/lib/grafana
+    networks:
+      - internal
+
+  app:
+    build: ./app
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    depends_on:
+      - kafka
+      - postgres
+    networks:
+      - internal
+
+  consumer:
+    build: ./consumer
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: marketdata
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      - kafka
+      - postgres
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:latest
+    depends_on:
+      - grafana
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/letsencrypt
+    networks:
+      - internal
+      - public
+
+networks:
+  internal:
+    internal: true
+  public:
+    driver: bridge

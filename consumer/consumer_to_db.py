@@ -5,10 +5,11 @@ Consumes messages from Kafka and stores them in TimescaleDB
 
 import asyncio
 import json
+import os
 from helper import get_psql_conn
 from aiokafka import AIOKafkaConsumer
 
-KAFKA_BOOTSTRAP = "localhost:9092"
+KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
 TOPIC = "ticks"
 
 async def consume():
@@ -20,10 +21,11 @@ async def consume():
     consumer = AIOKafkaConsumer(
         TOPIC,
         bootstrap_servers=KAFKA_BOOTSTRAP,
-        group_id="db-writer"
+        group_id="db-writer",
+        auto_offset_reset="earliest"
     )
     await consumer.start()
-    print("✅ Consumer connected to Kafka, writing to DB...")
+    print("Consumer connected to Kafka, writing to DB...")
 
     try:
         async for msg in consumer:
