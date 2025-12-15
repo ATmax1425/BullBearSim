@@ -51,6 +51,9 @@ services:
       GF_DATABASE_SSL_MODE: disable
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_SERVER_ROOT_URL: "https://bullbearsim.aniketpalaskar.dev"
+      GF_SERVER_SERVE_FROM_SUB_PATH: false
+
     depends_on:
       postgres:
         condition: service_healthy
