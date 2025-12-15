@@ -9,8 +9,6 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
-    depends_on:
-      - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -18,8 +16,15 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_HEAP_OPTS: "-Xmx256M -Xms128M"
+    depends_on:
+      - zookeeper
     networks:
       - internal
+    healthcheck:
+      test: ["CMD", "bash", "-c", "nc -z localhost 9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   postgres:
     image: timescale/timescaledb:latest-pg14
@@ -32,17 +37,23 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   grafana:
     image: grafana/grafana:latest
-    depends_on:
-      - postgres
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_DATABASE_SSL_MODE: disable
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+    depends_on:
+      postgres:
+        condition: service_healthy
     volumes:
       - grafana-storage:/var/lib/grafana
     networks:
@@ -53,8 +64,10 @@ services:
     environment:
       KAFKA_BOOTSTRAP: kafka:9092
     depends_on:
-      - kafka
-      - postgres
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
       - internal
 
@@ -67,8 +80,10 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
-      - kafka
-      - postgres
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
       - internal
 
