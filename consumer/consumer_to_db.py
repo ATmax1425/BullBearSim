@@ -14,17 +14,30 @@ TOPIC = "ticks"
 
 async def consume():
     # Connect to Postgres
+    print("Connecting to Postgres...")
     conn = get_psql_conn()
     cur = conn.cursor()
 
     # Kafka consumer
+    print("Connecting to Kafka...")
     consumer = AIOKafkaConsumer(
         TOPIC,
         bootstrap_servers=KAFKA_BOOTSTRAP,
         group_id="db-writer",
         auto_offset_reset="earliest"
     )
-    await consumer.start()
+    # Wait until Kafka is ready
+    for attempt in range(5):
+        print("Waiting for Kafka to be ready...")
+        try:
+            await consumer.start()
+            break
+        except Exception as e:
+            print(f"Kafka not ready ({attempt+1}/10): {e}")
+            await asyncio.sleep(5)
+    else:
+        print("Failed to connect to Kafka after several attempts.")
+        return
     print("Consumer connected to Kafka, writing to DB...")
 
     try:
