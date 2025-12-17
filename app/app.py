@@ -34,9 +34,8 @@ async def tick_producer():
     try:
         while True:
             ts = datetime.now(timezone.utc)
-            # todo test
-            # if not is_market_open(ts):
-            if is_market_open(ts):
+
+            if not is_market_open(ts):
                 print("Market closed, sleeping...")
                 await asyncio.sleep(60)
                 continue
