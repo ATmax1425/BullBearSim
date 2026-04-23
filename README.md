@@ -1,64 +1,94 @@
-# 📈 Real-Time Stock Market Streaming
+# Real-Time Stock Market Streaming
 
-End-to-end data engineering project for streaming, storing, and visualizing live stock market data.  
-Built to showcase real-time pipelines with **Kafka**, **FastAPI**, **TimescaleDB**, and **Streamlit**.
+Production-style real-time data engineering pipeline for ingesting, processing, and visualizing market data.
+The active pipeline is:
 
----
+`app/app.py` -> Kafka -> `consumer/consumer_to_db.py` -> TimescaleDB (PostgreSQL)
 
-## 🚀 Features
-- Real-time stock price streaming via **Kafka**
-- WebSocket API with **FastAPI**
-- Persistent storage in **TimescaleDB** (with 30-day retention policy)
-- **Dash dashboard** for:
-  - Live tick charting
-  - Historical queries from DB
+## Architecture
 
----
+- Kafka carries live tick events between services
+- The producer in `app/app.py` generates market ticks
+- The consumer in `consumer/consumer_to_db.py` writes rows into TimescaleDB
+- Docker Compose manages the core services
+- Nginx fronts the deployed dashboard stack
+- Grafana is used for visualization and monitoring
 
-## 🛠️ Tech Stack
-- **Python** (producer, consumer, backend, dashboard)
-- **Apache Kafka** (event streaming backbone)
-- **FastAPI** (WebSocket server)
-- **TimescaleDB/Postgres** (time-series storage)
-- **Dash** (data visualization)
-- **Docker Compose** (containerized setup)
+## Design Goals
 
----
+- Build a decoupled, event-driven pipeline for real-time market data
+- Ensure scalability via Kafka-based ingestion and consumer isolation
+- Optimize storage for time-series queries using TimescaleDB
+- Enable observability through Grafana dashboards
+- Support both local development and production deployment setups
 
-## 📂 Project Structure
+## Tech Stack
 
+- Python
+- Apache Kafka
+- TimescaleDB / PostgreSQL
+- Docker Compose
+- Nginx
+- Grafana
 
-├── app.py # FastAPI WebSocket server
-├── consumer_to_db.py # Kafka consumer → DB writer
-├── dash_client.py → Dash Client (Main UI)
-├── docker-compose.yml # Infra setup: Kafka + TimescaleDB
-├── helper.py # Utility functions
-├── init.sql # DB retention policy (30 days)
-├── streamlit_client.py # Streamlit frontend (Legacy UI)
-└── .gitignore
+## Project Structure
 
+```text
+├── app/
+│   ├── app.py
+│   ├── Dockerfile
+│   └── requirements.txt
+├── consumer/
+│   ├── consumer_to_db.py
+│   ├── helper.py
+│   ├── Dockerfile
+│   └── requirements.txt
+├── dev/
+│   ├── generate_historical_data.py
+│   └── nginx_local.conf
+├── docker-compose.yml
+├── init.sql
+├── nginx.conf
+└── .env.example
+```
 
----
+## Features
 
-## ⚡ Getting Started
+- Event-driven pipeline using Kafka for decoupled ingestion and processing
+- Real-time data persistence optimized for time-series workloads (TimescaleDB)
+- Containerized microservices architecture via Docker Compose
+- Reverse proxy setup with Nginx for secure and structured routing
+- Grafana dashboards for real-time visualization and monitoring
+- Development utilities for local testing and historical data simulation
 
-### 1. Clone the repo
+## Getting Started
+
+### 1. Configure environment
+
+Create a `.env` file from `.env.example` and fill in the required values.
+
+### 2. Start the stack
+
 ```bash
-git clone https://github.com/ATmax1425/realtime-stock-streaming.git
-cd realtime-stock-streaming
+docker compose up -d
+```
 
-docker-compose up -d
+### 3. Run the pipeline locally
 
-python producer.py
+```bash
+python app/app.py
+python consumer/consumer_to_db.py
+```
 
-python consumer_to_db.py
+## Development Utilities
 
-python dash_client.py
+The `dev/` folder contains local-only helpers that are not part of the core runtime pipeline:
 
-Planned features:
+- `dev/generate_historical_data.py` seeds historical tick data into TimescaleDB for testing and dashboard backfills
+- `dev/nginx_local.conf` provides a simplified Nginx config for local development
 
-🛒 Trading simulator (buy/sell)
+## Deployment Notes
 
-📰 IPO analysis & sentiment tracking
-
-📢 Alerts & notifications
+- `docker-compose.yml` defines Kafka, TimescaleDB, Grafana, the producer, the consumer, and Nginx
+- `init.sql` sets up the database schema and retention policy
+- `nginx.conf` is the active reverse proxy configuration used in deployment
