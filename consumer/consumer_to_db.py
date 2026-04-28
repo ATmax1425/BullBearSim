@@ -6,11 +6,12 @@ Consumes messages from Kafka and stores them in TimescaleDB
 import asyncio
 import json
 import os
-from helper import get_psql_conn
+from helper import get_psql_conn, safe_batch_insert
 from aiokafka import AIOKafkaConsumer
 
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
 TOPIC = "ticks"
+BATCH_SIZE = 50
 
 async def consume():
     # Connect to Postgres
@@ -33,23 +34,25 @@ async def consume():
             await consumer.start()
             break
         except Exception as e:
-            print(f"Kafka not ready ({attempt+1}/10): {e}")
+            print(f"Kafka not ready ({attempt+1}/5): {e}")
             await asyncio.sleep(5)
     else:
         print("Failed to connect to Kafka after several attempts.")
         return
     print("Consumer connected to Kafka, writing to DB...")
 
+    batch = []
     try:
         async for msg in consumer:
             data = json.loads(msg.value.decode("utf-8"))
-            cur.execute(
-                "INSERT INTO ticks (ts, symbol, price, volume) VALUES (%s, %s, %s, %s)",
-                (data["ts"], data["symbol"], data["price"], data["volume"])
-            )
-            conn.commit()
-            # print("commit done")
+            batch.append((data["ts"], data["symbol"], data["price"], data["volume"]))
+            if len(batch) >= BATCH_SIZE:
+                conn, cur = await asyncio.to_thread(safe_batch_insert, conn, cur, batch)
+                batch.clear()
+                # print("commit done")
     finally:
+        if batch:
+            conn, cur = await asyncio.to_thread(safe_batch_insert, conn, cur, batch)
         await consumer.stop()
         cur.close()
         conn.close()

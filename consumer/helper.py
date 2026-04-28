@@ -1,6 +1,5 @@
 import psycopg2
 import os
-from sqlalchemy import create_engine
 
 DB_CONN = {
     "dbname": os.getenv("POSTGRES_DB", "marketdata"),
@@ -10,7 +9,6 @@ DB_CONN = {
     "port": int(os.getenv("POSTGRES_PORT", 5432)),
 }
 
-print(DB_CONN)
 DB_URI = (
     f"postgresql+psycopg2://{DB_CONN['user']}:{DB_CONN['password']}"
     f"@{DB_CONN['host']}:{DB_CONN['port']}/{DB_CONN['dbname']}"
@@ -19,5 +17,36 @@ DB_URI = (
 def get_psql_conn():
     return psycopg2.connect(**DB_CONN)
 
-def get_psql_engine():
-    return create_engine(DB_URI)
+
+def safe_batch_insert(conn, cur, batch):
+    try:
+        cur.executemany(
+            """
+            INSERT INTO ticks (ts, symbol, price, volume)
+            VALUES (%s,%s,%s,%s)
+            ON CONFLICT (ts, symbol) DO NOTHING
+            """,
+            batch
+        )
+        conn.commit()
+        return conn, cur
+    except psycopg2.OperationalError as e:
+        print(f"DB error, reconnecting: {e}")
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+
+        conn = get_psql_conn()
+        cur = conn.cursor()
+
+        cur.executemany(
+            """
+            INSERT INTO ticks (ts, symbol, price, volume)
+            VALUES (%s,%s,%s,%s)
+            ON CONFLICT (ts, symbol) DO NOTHING
+            """,
+            batch
+        )
+        conn.commit()
+        return conn, cur

@@ -3,7 +3,9 @@ CREATE TABLE IF NOT EXISTS ticks (
     ts TIMESTAMPTZ NOT NULL,
     symbol TEXT NOT NULL,
     price DOUBLE PRECISION NOT NULL,
-    volume INT NOT NULL
+    volume INT NOT NULL,
+
+    CONSTRAINT ticks_ts_symbol_unique UNIQUE (ts, symbol)
 );
 
 -- Convert to hypertable

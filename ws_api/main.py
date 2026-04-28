@@ -23,6 +23,11 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+@app.get("/ws/health")
+async def health():
+    return {"status": "ok",
+            "connections": len(manager._clients)}
+
 @app.websocket("/ws")
 async def websocket_ticks(websocket: WebSocket) -> None:
     await manager.connect(websocket)

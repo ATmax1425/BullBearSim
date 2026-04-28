@@ -1,11 +1,12 @@
 
-import asyncio
+import os
 import json
 import random
-import os
-from datetime import datetime, timezone, time, timedelta
-
+import asyncio
+from zoneinfo import ZoneInfo
 from aiokafka import AIOKafkaProducer
+from datetime import datetime, timezone, time
+
 
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
 TOPIC_TICKS = "ticks"
@@ -15,8 +16,10 @@ SYMBOLS = ["NIFTY", "BANKNIFTY", "RELIANCE", "TCS", "INFY"]
 MARKET_OPEN = time(9, 15)
 MARKET_CLOSE = time(15, 30)
 
+IST = ZoneInfo("Asia/Kolkata")
+
 def is_market_open(ts: datetime) -> bool:
-    ist_ts = ts + timedelta(hours=5, minutes=30)
+    ist_ts = ts.astimezone(IST)
     if ist_ts.weekday() >= 5:
         return False
     return MARKET_OPEN <= ist_ts.time() <= MARKET_CLOSE
