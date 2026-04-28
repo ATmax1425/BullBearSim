@@ -43,6 +43,12 @@ The active pipeline is:
 │   ├── helper.py
 │   ├── Dockerfile
 │   └── requirements.txt
+├── ws_api/
+│   ├── main.py
+│   ├── kafka_consumer.py
+│   ├── websocket.py
+│   ├── Dockerfile
+│   └── requirements.txt
 ├── dev/
 │   ├── generate_historical_data.py
 │   └── nginx_local.conf

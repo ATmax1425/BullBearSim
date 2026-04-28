@@ -90,17 +90,34 @@ services:
     networks:
       - internal
 
+  ws_api:
+    container_name: ws_api
+    build:
+      context: ./ws_api
+      dockerfile: Dockerfile
+    environment:
+      KAFKA_BOOTSTRAP: ${KAFKA_BOOTSTRAP:-kafka:9092}
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    networks:
+      - internal
+
   nginx:
     image: nginx:latest
     depends_on:
       - grafana
       - app
+      - ws_api
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      # - ./nginx_local.conf:/etc/nginx/nginx.conf:ro # --- FOR LOCAL DEVELOPMENT ---
+      # - ./dev/nginx_local.conf:/etc/nginx/nginx.conf:ro # --- FOR LOCAL DEVELOPMENT ---
       - ./certs:/etc/letsencrypt
     networks:
       - internal
