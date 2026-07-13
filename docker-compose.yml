@@ -43,25 +43,6 @@ services:
       timeout: 5s
       retries: 10
 
-  grafana:
-    image: grafana/grafana:latest
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-      GF_DATABASE_SSL_MODE: disable
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
-      GF_SERVER_ROOT_URL: "https://bullbearsim.aniketpalaskar.dev"
-      GF_SERVER_SERVE_FROM_SUB_PATH: false
-
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - grafana-storage:/var/lib/grafana
-    networks:
-      - internal
-
   app:
     build: ./app
     environment:
@@ -106,18 +87,22 @@ services:
     networks:
       - internal
 
+  frontend:
+    build: ./frontend
+    networks:
+      - internal
+
   nginx:
     image: nginx:latest
     depends_on:
-      - grafana
-      - app
+      - frontend
       - ws_api
     ports:
       - "80:80" # HTTP
       - "443:443" # HTTPS
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      # - ./dev/nginx_local.conf:/etc/nginx/nginx.conf:ro # --- FOR LOCAL DEVELOPMENT ---
+      # - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./dev/nginx_local.conf:/etc/nginx/nginx.conf:ro # --- FOR LOCAL DEVELOPMENT ---
       - ./certs:/etc/letsencrypt
     networks:
       - internal
@@ -131,4 +116,4 @@ networks:
 
 volumes:
   kafka-data:
-  grafana-storage:
+

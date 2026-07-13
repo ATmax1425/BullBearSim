@@ -210,3 +210,4 @@ __marimo__/
 pgdata/
 app.cpython-313.pyc
 grafana-data
+node_modules/
