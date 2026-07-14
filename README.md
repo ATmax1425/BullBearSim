@@ -140,17 +140,59 @@ To learn event-driven architecture hands-on. Kafka for decoupled streaming, Time
 ## Getting Started
 
 ```bash
-git clone <repo-url> && cd realtime-stock-streaming
-cp .env.example .env          # edit passwords
-docker compose up -d          # starts all 7 services
-open http://localhost
+git clone https://github.com/ATmax1425/realtime-stock-streaming.git
+cd realtime-stock-streaming
+
+cp .env.example .env
+# Edit .env with your own values
 ```
+
+### Choose the appropriate Nginx configuration
+
+The repository contains two Nginx configurations:
+
+- **Production (`nginx.conf`)** – HTTPS, SSL certificates, Cloudflare-compatible.
+- **Development (`dev/nginx_local.conf`)** – HTTP only, intended for local development with Vite.
+
+The repository defaults to the **production configuration**.
+
+If you're running locally without SSL, update `docker-compose.yml`:
+
+```yaml
+# Production
+# - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+# Local development
+- ./dev/nginx_local.conf:/etc/nginx/nginx.conf:ro
+```
+
+Then start the stack:
+
+```bash
+docker compose up -d --build
+```
+
+Verify:
+
+```bash
+docker compose ps
+```
+
+Open:
+
+```
+http://localhost
+```
+
+The simulator publishes approximately **11 ticks/second**.
 
 Verify with `docker compose ps`. Ticks flow at 11/sec.
 
 ---
 
 ## Local Development (Frontend)
+
+Requires the full backend stack (`docker compose up`) running with the local nginx config (see Getting Started).
 
 ```bash
 cd frontend && npm install && npm run dev
