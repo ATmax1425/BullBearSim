@@ -1,4 +1,4 @@
-# StockStream — Real-Time Market Data Pipeline
+# BullBearSim — Real-Time Market Data Pipeline
 
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python)](https://www.python.org)
 [![Kafka](https://img.shields.io/badge/Kafka-7.5-231F20?logo=apachekafka)](https://kafka.apache.org)
