@@ -8,6 +8,7 @@ import { VolumeChart } from './components/VolumeChart';
 import { TopMovers } from './components/TopMovers';
 import { RecentTickFeed } from './components/RecentTickFeed';
 import { StreamMetrics } from './components/StreamMetrics';
+import { SimulationBadge } from './components/SimulationBadge';
 import { calcChangeFromChartWindow } from './utils/stats';
 
 export default function App() {
@@ -45,6 +46,8 @@ export default function App() {
           streamRate={messagesPerSecond}
           lastUpdate={marketSummary.lastUpdate}
         />
+
+        <SimulationBadge />
 
         <section>
           <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
@@ -95,6 +98,10 @@ export default function App() {
             lastTickAge={lastTickAge}
           />
         </div>
+
+        <p className="text-xs text-center text-gray-600">
+          For educational and portfolio purposes only. Not financial advice.
+        </p>
       </main>
     </div>
   );

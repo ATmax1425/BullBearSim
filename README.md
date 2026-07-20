@@ -113,6 +113,16 @@ To learn event-driven architecture hands-on. Kafka for decoupled streaming, Time
 
 ---
 
+## Simulation Notice
+
+BullBearSim uses a realistic market simulation engine to generate synthetic stock prices and trading volumes.
+
+The dashboard does **not** display live market data, and none of the information should be interpreted as real financial information or investment advice.
+
+The simulator runs continuously so the live demo always has fresh streaming data.
+
+---
+
 ## Technology Stack
 
 | Layer | Technology |
