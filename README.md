@@ -137,13 +137,15 @@ The simulator runs continuously so the live demo always has fresh streaming data
 
 ---
 
+## Demo
+
+[BullBearSim Demo Video](https://github.com/user-attachments/assets/6d7332e4-d572-4df9-beb9-4608bd347e98)
+
 ## Screenshots
 
 | Overview | Price Chart |
 |----------|-------------|
-| `images/dashboard-overview.png` | `images/live-chart.png` |
-
-**Demo GIF** (15s, 1080p): Load page → watch ticks update the price chart → click a different symbol → observe top movers react.
+| <img src="images/dashboard-overview.png" alt="Dashboard Overview" width="100%" style="border:1px solid #d1d5db;border-radius:6px;" /> | <img src="images/live-chart.png" alt="Live Price Chart" width="100%" style="border:1px solid #d1d5db;border-radius:6px;" /> |
 
 ---
 
