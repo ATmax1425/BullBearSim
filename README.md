@@ -32,36 +32,34 @@ images/dashboard-overview.png
 ---
 
 ## Architecture
-
+    
 ```mermaid
-graph TB
+graph LR
     subgraph Client
-        B[Browser]
+        UI[React + Chart.js]
     end
-    subgraph Proxy
+
+    subgraph Server
         N[Nginx]
-    end
-    subgraph Frontend
-        R[React + Chart.js]
-    end
-    subgraph Backend
-        P[Producer]
-        C[Consumer]
         W[FastAPI WebSocket API]
+        P[Market Data Producer]
+        C[Kafka Consumer]
     end
+
     subgraph Data
         K[(Kafka)]
         T[(TimescaleDB)]
     end
 
-    B -->|HTTP| N
-    N -->|/| R
-    N -->|/ws| W
-    P -->|ticks| K
-    K --> C
-    C -->|INSERT| T
-    K --> W
-    W -->|broadcast| B
+    UI <-->|HTTP & WebSocket| N
+    N -->|Reverse Proxy /ws| W
+
+    P -->|Market Ticks| K
+    K -->|Stream| W
+    K -->|Consume| C
+    C -->|Persist| T
+
+    W -->|Live Updates| UI
 ```
 
 7 Docker services — `kafka`, `postgres` (TimescaleDB), `app` (producer), `consumer`, `ws_api`, `frontend`, `nginx`.
