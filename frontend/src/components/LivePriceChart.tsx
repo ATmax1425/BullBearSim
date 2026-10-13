@@ -9,9 +9,9 @@ import {
   Tooltip,
   Filler,
 } from 'chart.js';
-import { formatTime } from '../utils/format';
-import { formatIndianPrice, formatChangeShort } from '../utils/format';
-import type { Tick } from '../types';
+import { formatTime, formatIndianPrice, formatChangeShort } from '../utils/format';
+import { calcDirection, directionTextColor } from '../utils/stats';
+import type { Direction, Tick } from '../types';
 
 ChartJS.register(
   CategoryScale,
@@ -29,12 +29,15 @@ interface LivePriceChartProps {
   changePct: number;
 }
 
+const lineColors: Record<Direction, { line: string; fill: string }> = {
+  up: { line: '#22c55e', fill: 'rgba(34, 197, 94, 0.08)' },
+  down: { line: '#ef4444', fill: 'rgba(239, 68, 68, 0.08)' },
+  flat: { line: '#3b82f6', fill: 'rgba(59, 130, 246, 0.1)' },
+};
+
 export function LivePriceChart({ ticks, symbol, changePct }: LivePriceChartProps) {
-  const isUp = changePct >= 0;
-  const lineColor = ticks.length > 1 ? (isUp ? '#22c55e' : '#ef4444') : '#3b82f6';
-  const fillColor = ticks.length > 1
-    ? (isUp ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)')
-    : 'rgba(59, 130, 246, 0.1)';
+  const direction = ticks.length > 1 ? calcDirection(changePct) : 'flat';
+  const { line: lineColor, fill: fillColor } = lineColors[direction];
 
   const data = {
     labels: ticks.map((t) => formatTime(t.ts)),
@@ -99,9 +102,7 @@ export function LivePriceChart({ ticks, symbol, changePct }: LivePriceChartProps
                   </span>
                 )}
                 <span
-                  className={`font-mono text-sm font-medium tabular-nums ${
-                    changePct >= 0 ? 'text-green-400' : 'text-red-400'
-                  }`}
+                  className={`font-mono text-sm font-medium tabular-nums ${directionTextColor[direction]}`}
                 >
                   {formatChangeShort(changePct)}
                 </span>
@@ -113,7 +114,7 @@ export function LivePriceChart({ ticks, symbol, changePct }: LivePriceChartProps
         </div>
         {ticks.length > 0 && (
           <span className="text-xs text-gray-600 tabular-nums">
-            {ticks.length} ticks · {formatTime(ticks[0].ts)} – {formatTime(ticks[ticks.length - 1].ts)}
+            {ticks.length} ticks · {formatTime(ticks[0].ts)} – {formatTime(ticks[ticks.length - 1].ts)} IST
           </span>
         )}
       </div>

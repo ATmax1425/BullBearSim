@@ -7,7 +7,7 @@ interface HeaderProps {
 const statusConfig = {
   connected: { color: 'bg-green-500', label: 'Live', pulse: true },
   connecting: { color: 'bg-yellow-500', label: 'Connecting...', pulse: true },
-  disconnected: { color: 'bg-red-500', label: 'Disconnected', pulse: false },
+  reconnecting: { color: 'bg-red-500', label: 'Reconnecting...', pulse: true },
 } as const;
 
 export function Header({ connectionStatus }: HeaderProps) {

@@ -3,8 +3,9 @@ import {
   formatIndianPrice,
   formatChangeShort,
   formatIndianVolume,
-  formatTimeShort,
+  formatTime,
 } from '../utils/format';
+import { calcDirection, directionTextColor } from '../utils/stats';
 
 interface SymbolDetailProps {
   symbol: string | null;
@@ -14,7 +15,7 @@ interface SymbolDetailProps {
 
 export function SymbolDetail({ symbol, ticks, changePct }: SymbolDetailProps) {
   const latest = ticks.length > 0 ? ticks[ticks.length - 1] : null;
-  const isUp = changePct >= 0;
+  const changeColor = directionTextColor[calcDirection(changePct)];
 
   return (
     <div className="bg-gray-900 rounded-lg p-4 min-h-[4.5rem] flex items-center">
@@ -25,9 +26,8 @@ export function SymbolDetail({ symbol, ticks, changePct }: SymbolDetailProps) {
             {formatIndianPrice(latest.price)}
           </span>
           <span
-            className={`text-base font-mono font-medium tabular-nums ${
-              isUp ? 'text-green-400' : 'text-red-400'
-            }`}
+            className={`text-base font-mono font-medium tabular-nums ${changeColor}`}
+            title="Change over the chart window"
           >
             {formatChangeShort(changePct)}
           </span>
@@ -35,7 +35,7 @@ export function SymbolDetail({ symbol, ticks, changePct }: SymbolDetailProps) {
             Vol: {formatIndianVolume(latest.volume)}
           </span>
           <span className="text-xs text-gray-600 tabular-nums">
-            {formatTimeShort(latest.ts)}
+            {formatTime(latest.ts)} IST
           </span>
         </div>
       ) : (

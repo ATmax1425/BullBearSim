@@ -5,9 +5,15 @@ export interface Tick {
   volume: number;
 }
 
+export type Direction = 'up' | 'down' | 'flat';
+
+/** A tick in the recent-ticks feed, with its move versus the same symbol's previous tick. */
+export interface FeedTick extends Tick {
+  direction: Direction;
+}
+
 export interface SymbolData {
   ticks: Tick[];
-  firstPrice: number | null;
 }
 
 export interface SymbolSummary {
@@ -16,16 +22,7 @@ export interface SymbolSummary {
   change: number;
   changePct: number;
   volume: number;
-  direction: 'up' | 'down' | 'flat';
+  direction: Direction;
 }
 
-export interface MarketSummary {
-  total: number;
-  advancing: number;
-  declining: number;
-  streamRate: number;
-  lastUpdate: string | null;
-  connectionStatus: ConnectionStatus;
-}
-
-export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
+export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting';
