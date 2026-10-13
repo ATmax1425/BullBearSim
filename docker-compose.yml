@@ -1,6 +1,14 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    restart: unless-stopped
+    logging: *default-logging
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -16,6 +24,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # Ticks are persisted in TimescaleDB, so Kafka only needs a short buffer.
+      KAFKA_LOG_RETENTION_HOURS: 24
     volumes:
       - kafka-data:/var/lib/kafka/data
     networks:
@@ -27,7 +37,10 @@ services:
       retries: 10
 
   postgres:
+    # Keep the PostgreSQL major version (pg14) unless you migrate ./pgdata.
     image: timescale/timescaledb:latest-pg14
+    restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -45,18 +58,20 @@ services:
 
   app:
     build: ./app
+    restart: unless-stopped
+    logging: *default-logging
     environment:
       KAFKA_BOOTSTRAP: kafka:9092
     depends_on:
       kafka:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
     networks:
       - internal
 
   consumer:
     build: ./consumer
+    restart: unless-stopped
+    logging: *default-logging
     environment:
       KAFKA_BOOTSTRAP: kafka:9092
       POSTGRES_HOST: postgres
@@ -76,8 +91,10 @@ services:
     build:
       context: ./ws_api
       dockerfile: Dockerfile
+    restart: unless-stopped
+    logging: *default-logging
     environment:
-      KAFKA_BOOTSTRAP: ${KAFKA_BOOTSTRAP:-kafka:9092}
+      KAFKA_BOOTSTRAP: kafka:9092
       PYTHONUNBUFFERED: "1"
     depends_on:
       kafka:
@@ -88,14 +105,24 @@ services:
     #   - "8000:8000"
     networks:
       - internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ws/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   frontend:
     build: ./frontend
+    restart: unless-stopped
+    logging: *default-logging
     networks:
       - internal
 
   nginx:
-    image: nginx:latest
+    image: nginx:1.28
+    restart: unless-stopped
+    logging: *default-logging
     depends_on:
       - frontend
       - ws_api
@@ -120,4 +147,3 @@ networks:
 
 volumes:
   kafka-data:
-
