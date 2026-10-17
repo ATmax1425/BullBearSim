@@ -1,16 +1,15 @@
-export function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString('en-IN', { hour12: false });
-}
+// The simulated market runs on Indian Standard Time; show every timestamp in
+// IST regardless of the viewer's own timezone.
+const TIME_FORMAT: Intl.DateTimeFormatOptions = {
+  timeZone: 'Asia/Kolkata',
+  hour12: false,
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+};
 
-export function formatTimeShort(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString('en-IN', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+export function formatTime(value: string | number): string {
+  return new Date(value).toLocaleTimeString('en-IN', TIME_FORMAT);
 }
 
 function toIndianNumber(n: number): string {
@@ -25,11 +24,7 @@ function toIndianNumber(n: number): string {
 }
 
 export function formatIndianPrice(price: number): string {
-  return '\u20B9' + toIndianNumber(price);
-}
-
-export function formatIndianNumber(n: number): string {
-  return toIndianNumber(n);
+  return '₹' + toIndianNumber(price);
 }
 
 export function formatIndianVolume(volume: number): string {
@@ -45,20 +40,9 @@ export function formatIndianVolume(volume: number): string {
   return volume.toString();
 }
 
-export function formatChange(change: number, changePct: number): string {
-  const sign = change >= 0 ? '+' : '';
-  return `${sign}\u20B9${toIndianNumber(Math.abs(change))} (${sign}${changePct.toFixed(2)}%)`;
-}
-
 export function formatChangeShort(changePct: number): string {
-  const sign = changePct >= 0 ? '+' : '';
-  return `${sign}${changePct.toFixed(2)}%`;
-}
-
-export function timeAgo(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 5) return 'just now';
-  if (seconds < 60) return `${seconds}s ago`;
-  const mins = Math.floor(seconds / 60);
-  return `${mins}m ago`;
+  const rounded = Number(changePct.toFixed(2));
+  if (rounded === 0) return '0.00%'; // avoid "-0.00%" / "+0.00%"
+  const sign = rounded > 0 ? '+' : '';
+  return `${sign}${rounded.toFixed(2)}%`;
 }

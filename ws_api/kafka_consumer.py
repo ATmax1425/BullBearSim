@@ -1,6 +1,8 @@
-import json
-import os
 import asyncio
+import json
+import logging
+import os
+import time
 
 from aiokafka import AIOKafkaConsumer
 
@@ -8,36 +10,51 @@ from websocket import ConnectionManager
 
 
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
-CONSUMER_GROUP = os.getenv("WS_API_CONSUMER_GROUP", "ws-broadcast")
 TOPIC = "ticks"
 
+log = logging.getLogger("ws_api")
 
-async def consume_ticks(manager: ConnectionManager) -> None:
-    consumer = AIOKafkaConsumer(
-        TOPIC,
-        bootstrap_servers=KAFKA_BOOTSTRAP,
-        group_id=CONSUMER_GROUP,
-        auto_offset_reset="latest",
-    )
 
-    delay_seconds = 1
+class ConsumerStatus:
+    def __init__(self) -> None:
+        self.connected = False
+        self.last_message_at: float | None = None
+
+
+async def consume_ticks(manager: ConnectionManager, status: ConsumerStatus) -> None:
+    """Relay ticks from Kafka to WebSocket clients, reconnecting on any failure."""
+    delay = 1
     while True:
+        # No consumer group: this is a live relay, so every (re)start begins at
+        # the latest offset instead of replaying ticks missed while it was down.
+        consumer = AIOKafkaConsumer(
+            TOPIC,
+            bootstrap_servers=KAFKA_BOOTSTRAP,
+            group_id=None,
+            auto_offset_reset="latest",
+        )
         try:
             await consumer.start()
-            break
-        except Exception as exc:
-            print(f"Kafka not ready for ws_api consumer: {exc}")
-            await asyncio.sleep(delay_seconds)
-            delay_seconds = min(delay_seconds * 2, 10)
+            status.connected = True
+            delay = 1
+            log.info("Connected to Kafka, relaying ticks")
 
-    try:
-        async for msg in consumer:
-            try:
-                data = json.loads(msg.value.decode("utf-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                print(f"Skipping invalid Kafka message: {exc}")
-                continue
-            await manager.broadcast(data)
-            print(data)
-    finally:
-        await consumer.stop()
+            async for msg in consumer:
+                try:
+                    text = msg.value.decode("utf-8")
+                    json.loads(text)
+                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    log.warning("Skipping invalid Kafka message: %s", exc)
+                    continue
+                status.last_message_at = time.time()
+                manager.broadcast(text)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            log.warning("Kafka consumer error (%s), restarting in %ss", exc, delay)
+        finally:
+            status.connected = False
+            await consumer.stop()
+
+        await asyncio.sleep(delay)
+        delay = min(delay * 2, 30)

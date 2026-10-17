@@ -1,4 +1,4 @@
-import { useMarketData } from './hooks/useMarketData';
+import { useMarketData, CHART_WINDOW } from './hooks/useMarketData';
 import { Header } from './components/Header';
 import { SystemStatus } from './components/SystemStatus';
 import { MarketOverview } from './components/MarketOverview';
@@ -20,9 +20,9 @@ export default function App() {
     totalMessages,
     messagesPerSecond,
     lastTickAge,
+    lastUpdate,
     selectSymbol,
     symbolSummaries,
-    marketSummary,
     topGainers,
     topLosers,
   } = useMarketData();
@@ -41,10 +41,9 @@ export default function App() {
 
       <main className="flex-1 px-4 sm:px-6 py-5 max-w-7xl mx-auto w-full space-y-4">
         <SystemStatus
-          connectionStatus={connectionStatus}
           symbolCount={symbolSummaries.length}
           streamRate={messagesPerSecond}
-          lastUpdate={marketSummary.lastUpdate}
+          lastUpdate={lastUpdate}
         />
 
         <SimulationBadge />
@@ -52,6 +51,9 @@ export default function App() {
         <section>
           <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
             Symbols
+            <span className="normal-case tracking-normal font-normal text-gray-600">
+              {' '}· change over last {CHART_WINDOW} ticks
+            </span>
           </h2>
           <MarketOverview
             summaries={symbolSummaries}
@@ -81,12 +83,7 @@ export default function App() {
           </div>
         </div>
 
-        <section>
-          <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-            Recent Ticks
-          </h2>
-          <RecentTickFeed ticks={recentTicks} />
-        </section>
+        <RecentTickFeed ticks={recentTicks} />
 
         <div className="pt-4 border-t border-gray-800">
           <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">

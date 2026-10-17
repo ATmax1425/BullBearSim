@@ -1,60 +1,77 @@
-import random
-from datetime import datetime, timedelta, time
-from dateutil.relativedelta import relativedelta
+"""
+Backfill TimescaleDB with simulated historical ticks.
 
-from consumer.helper import get_psql_conn
+Uses the same simulation engine and symbols as the live producer, stepping
+every --step seconds during IST market hours on weekdays.
 
-SYMBOLS = ["NIFTY", "BANKNIFTY", "RELIANCE", "TCS", "INFY"]
+Postgres is only reachable on the internal Docker network, so run this
+inside the consumer image (which has psycopg2 and the DB settings):
 
-MARKET_OPEN = time(9, 15)
-MARKET_CLOSE = time(15, 30)
+    docker compose run --rm -v "$PWD:/repo" -w /repo consumer \
+        python dev/generate_historical_data.py --days 7
 
-def generate_historical_data(start_date, end_date, delta_seconds=1):
+Re-running is safe: existing (ts, symbol) rows are skipped.
+"""
+
+import argparse
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT / "app"))
+sys.path.insert(0, str(REPO_ROOT / "consumer"))
+
+from psycopg2.extras import execute_values  # noqa: E402
+
+from helper import INSERT_SQL, get_psql_conn  # noqa: E402
+from simulation import IST, MARKET_CLOSE, MARKET_OPEN, MarketSimulator  # noqa: E402
+
+
+def generate_historical_data(days: int, step_seconds: int, seed: int | None) -> None:
+    sim = MarketSimulator(seed=seed)
     conn = get_psql_conn()
-    cur = conn.cursor()
 
-    prices = {s: 100.0 + random.uniform(-10, 10) for s in SYMBOLS}
-    vols = {s: 0.01 for s in SYMBOLS}
+    today = datetime.now(IST).date()
+    start_day = today - timedelta(days=days)
+    step = timedelta(seconds=step_seconds)
+    total = 0
 
-    current_day = start_date
-    while current_day <= end_date:
-        if current_day.weekday() >= 5:
-            current_day += timedelta(days=1)
-            continue
+    try:
+        day = start_day
+        while day < today:
+            if day.weekday() < 5:
+                ts = datetime.combine(day, MARKET_OPEN, tzinfo=IST)
+                end = datetime.combine(day, MARKET_CLOSE, tzinfo=IST)
+                rows = []
+                while ts <= end:
+                    ts_utc = ts.astimezone(timezone.utc)
+                    for symbol, price, volume in sim.step(ts_utc, dt=step_seconds):
+                        rows.append((ts_utc, symbol, price, volume))
+                    ts += step
 
-        ts = datetime.combine(current_day, MARKET_OPEN)
-        market_end = datetime.combine(current_day, MARKET_CLOSE)
-        delta = timedelta(seconds=delta_seconds)
+                with conn.cursor() as cur:
+                    execute_values(cur, INSERT_SQL, rows, page_size=1000)
+                conn.commit()
+                total += len(rows)
+                print(f"Inserted {len(rows)} rows for {day}")
+            day += timedelta(days=1)
+    finally:
+        conn.close()
 
-        while ts <= market_end:
-            market_factor = random.gauss(0, 0.001)
-            for s in SYMBOLS:
-                if random.random() < 0.05:
-                    vols[s] = max(0.001, vols[s] * random.uniform(0.5, 1.5))
+    print(f"Historical data generation completed ({total} rows).")
 
-                drift = 0.0002
-                indiv_move = random.gauss(drift, vols[s])
-                delta_price = market_factor + indiv_move
-                old_price = prices[s]
-                prices[s] = max(1, prices[s] * (1 + delta_price))
 
-                volume = max(1, int(random.gauss(100 + abs(prices[s] - old_price) * 5000, 30)))
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    parser.add_argument("--days", type=int, default=7,
+                        help="number of past days to generate (retention is 30 days)")
+    parser.add_argument("--step", type=int, default=60,
+                        help="seconds between generated ticks")
+    parser.add_argument("--seed", type=int, default=None, help="random seed")
+    args = parser.parse_args()
+    generate_historical_data(args.days, args.step, args.seed)
 
-                cur.execute(
-                    "INSERT INTO ticks (ts, symbol, price, volume) VALUES (%s, %s, %s, %s)",
-                    (ts.isoformat(), s, round(prices[s], 2), volume)
-                )
-            ts += delta
-
-        conn.commit()
-        print(f"Inserted data for {current_day}")
-        current_day += timedelta(days=1)
-
-    cur.close()
-    conn.close()
-    print("Historical data generation completed.")
 
 if __name__ == "__main__":
-    end = datetime.now()
-    start = end - relativedelta(months=1)
-    generate_historical_data(start, end, delta_seconds=60)
+    main()

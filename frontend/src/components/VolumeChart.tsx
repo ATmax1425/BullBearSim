@@ -7,8 +7,7 @@ import {
   Title,
   Tooltip,
 } from 'chart.js';
-import { formatTime } from '../utils/format';
-import { formatIndianVolume } from '../utils/format';
+import { formatTime, formatIndianVolume } from '../utils/format';
 import type { Tick } from '../types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip);

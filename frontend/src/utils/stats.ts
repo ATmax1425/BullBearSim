@@ -1,4 +1,4 @@
-import type { Tick } from '../types';
+import type { Direction, Tick } from '../types';
 
 export function calcChange(
   price: number,
@@ -20,10 +20,22 @@ export function calcChangeFromChartWindow(
   return calcChange(latest, reference);
 }
 
-export function calcDirection(
-  changePct: number,
-): 'up' | 'down' | 'flat' {
+/** Direction of a percentage change; moves within ±0.01% count as flat. */
+export function calcDirection(changePct: number): Direction {
   if (changePct > 0.01) return 'up';
   if (changePct < -0.01) return 'down';
   return 'flat';
 }
+
+/** Direction of one tick versus the previous tick of the same symbol. */
+export function calcTickDirection(price: number, previousPrice: number): Direction {
+  if (price > previousPrice) return 'up';
+  if (price < previousPrice) return 'down';
+  return 'flat';
+}
+
+export const directionTextColor: Record<Direction, string> = {
+  up: 'text-green-400',
+  down: 'text-red-400',
+  flat: 'text-gray-400',
+};
